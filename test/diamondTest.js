@@ -11,6 +11,8 @@ const { deployDiamond } = require('../scripts/deploy.js')
 
 const { assert } = require('chai')
 
+const hre = require('hardhat')
+
 describe('DiamondTest', async function () {
   let diamondAddress
   let diamondCutFacet
@@ -20,6 +22,8 @@ describe('DiamondTest', async function () {
   let receipt
   let result
   const addresses = []
+
+  const diamondGasLimit = Math.floor(800000 * hre.network.config.gasMultiplier)
 
   before(async function () {
     diamondAddress = await deployDiamond()
@@ -79,7 +83,7 @@ describe('DiamondTest', async function () {
         action: FacetCutAction.Add,
         functionSelectors: selectors
       }],
-      ethers.constants.AddressZero, '0x', { gasLimit: 800000 })
+      ethers.constants.AddressZero, '0x', { gasLimit: diamondGasLimit })
     receipt = await tx.wait()
     if (!receipt.status) {
       throw Error(`Diamond upgrade failed: ${tx.hash}`)
@@ -103,7 +107,7 @@ describe('DiamondTest', async function () {
         action: FacetCutAction.Replace,
         functionSelectors: selectors
       }],
-      ethers.constants.AddressZero, '0x', { gasLimit: 800000 })
+      ethers.constants.AddressZero, '0x', { gasLimit: diamondGasLimit })
     receipt = await tx.wait()
     if (!receipt.status) {
       throw Error(`Diamond upgrade failed: ${tx.hash}`)
@@ -124,7 +128,7 @@ describe('DiamondTest', async function () {
         action: FacetCutAction.Add,
         functionSelectors: selectors
       }],
-      ethers.constants.AddressZero, '0x', { gasLimit: 800000 })
+      ethers.constants.AddressZero, '0x', { gasLimit: diamondGasLimit })
     receipt = await tx.wait()
     if (!receipt.status) {
       throw Error(`Diamond upgrade failed: ${tx.hash}`)
@@ -143,7 +147,7 @@ describe('DiamondTest', async function () {
         action: FacetCutAction.Remove,
         functionSelectors: selectors
       }],
-      ethers.constants.AddressZero, '0x', { gasLimit: 800000 })
+      ethers.constants.AddressZero, '0x', { gasLimit: diamondGasLimit })
     receipt = await tx.wait()
     if (!receipt.status) {
       throw Error(`Diamond upgrade failed: ${tx.hash}`)
@@ -162,7 +166,7 @@ describe('DiamondTest', async function () {
         action: FacetCutAction.Remove,
         functionSelectors: selectors
       }],
-      ethers.constants.AddressZero, '0x', { gasLimit: 800000 })
+      ethers.constants.AddressZero, '0x', { gasLimit: diamondGasLimit })
     receipt = await tx.wait()
     if (!receipt.status) {
       throw Error(`Diamond upgrade failed: ${tx.hash}`)
@@ -184,7 +188,7 @@ describe('DiamondTest', async function () {
         action: FacetCutAction.Remove,
         functionSelectors: selectors
       }],
-      ethers.constants.AddressZero, '0x', { gasLimit: 800000 })
+      ethers.constants.AddressZero, '0x', { gasLimit: diamondGasLimit })
     receipt = await tx.wait()
     if (!receipt.status) {
       throw Error(`Diamond upgrade failed: ${tx.hash}`)
@@ -225,10 +229,16 @@ describe('DiamondTest', async function () {
         functionSelectors: getSelectors(Test2Facet)
       }
     ]
-    tx = await diamondCutFacet.diamondCut(cut, ethers.constants.AddressZero, '0x', { gasLimit: 8000000 })
-    receipt = await tx.wait()
-    if (!receipt.status) {
-      throw Error(`Diamond upgrade failed: ${tx.hash}`)
+    const txs = []
+    for (const val of cut) {
+      tx = await diamondCutFacet.diamondCut([val], ethers.constants.AddressZero, '0x', { gasLimit: diamondGasLimit })
+      txs.push(tx.wait())
+    }
+    const receipts = await Promise.all(txs)
+    for (const receipt of receipts) {
+      if (!receipt.status) {
+        throw Error(`Diamond upgrade failed: ${tx.hash}`)
+      }
     }
     const facets = await diamondLoupeFacet.facets()
     const facetAddresses = await diamondLoupeFacet.facetAddresses()

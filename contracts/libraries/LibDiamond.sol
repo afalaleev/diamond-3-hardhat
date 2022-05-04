@@ -62,7 +62,7 @@ library LibDiamond {
         require(msg.sender == diamondStorage().contractOwner, "LibDiamond: Must be contract owner");
     }
 
-    event DiamondCut(IDiamondCut.FacetCut[] _diamondCut, address _init, bytes _calldata);
+    event DiamondCut(IDiamondCut.FacetCut _diamondCut, address _init, bytes _calldata);
 
     // Internal function version of diamondCut
     function diamondCut(
@@ -82,7 +82,9 @@ library LibDiamond {
                 revert("LibDiamondCut: Incorrect FacetCutAction");
             }
         }
-        emit DiamondCut(_diamondCut, _init, _calldata);
+        for (uint256 facetIndex; facetIndex < _diamondCut.length; facetIndex++) {
+            emit DiamondCut(_diamondCut[facetIndex], _init, _calldata);
+        }
         initializeDiamondCut(_init, _calldata);
     }
 
